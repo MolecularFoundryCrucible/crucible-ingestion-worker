@@ -10,8 +10,8 @@ ENV UV_NO_DEV=1 \
 
 RUN apt-get update && apt-get install -yq --no-upgrade unzip curl && rm -rf /var/lib/apt/lists/*
 
-RUN useradd --create-home --uid 10001 worker && mkdir /app && chown worker:worker /app
-USER worker
+RUN groupadd --gid 10001 worker && useradd --create-home --uid 10001 --gid 10001 worker && mkdir /app && chown worker:worker /app
+USER 10001:10001
 WORKDIR /app
 
 COPY --chown=worker:worker pyproject.toml uv.lock .python-version ./

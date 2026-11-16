@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-16
+
+Numeric image user. crucible-ingestion 0.2.0.
+
+### Changed
+
+- The image sets its user as `10001:10001`, so `runAsNonRoot` works without `runAsUser`.
+
 ## [0.3.0] - 2026-11-13
 
 Direct reads from GCS or S3, no rerun of completed jobs, and a read-only root filesystem. crucible-ingestion 0.2.0.
@@ -39,6 +47,7 @@ First release as `crucible-ingestion-worker`: generic configuration, threaded jo
 - Unreadable or crashing messages move to the failed queue.
 - Images on ghcr from version tags, with the crucible-ingestion version in the label `gov.lbl.crucible.ingestion.version`; `CRUCIBLE_INGESTION_SPEC` builds against another crucible-ingestion.
 
-[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/releases/tag/v0.2.0
