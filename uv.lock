@@ -452,7 +452,7 @@ wheels = [
 
 [[package]]
 name = "crucible-ingestion"
-version = "0.2.0"
+version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aicspylibczi" },
@@ -475,14 +475,14 @@ dependencies = [
     { name = "tifffile", version = "2026.11.12", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "xmltodict" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/13/17/de42229b44ba9a2752eeeb28e29d5c6d50050cd8fb556dda5b9c1803c25c/crucible_ingestion-0.2.0.tar.gz", hash = "sha256:2712a3ebd6f3ab864004934d7e191ae31d6ba3862d547f3bd0adfa702bcfd767", size = 348410, upload-time = "2026-11-13T17:57:54.963Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/f3/827db4520f7923f83a43741b2ac812abd766f8cdf8bee1aa02fc4688f40e/crucible_ingestion-0.2.1.tar.gz", hash = "sha256:5bc6c006f89ab57c8e89fdd7c621c76bb1371cd32696b60127f3dfd534c09748", size = 348464, upload-time = "2026-11-17T20:08:40.464Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/8a/c85d5e9758d69e6d6e76a319bb1f92e2977369d645ef1bf40a0064d4f2f1/crucible_ingestion-0.2.0-py3-none-any.whl", hash = "sha256:7839485aa0ad0e8fc34df9c852b0b57618ef5e53a9abab85bfdf3279ba488186", size = 83027, upload-time = "2026-11-13T17:57:53.83Z" },
+    { url = "https://files.pythonhosted.org/packages/24/93/efd9d8680b8c24769fe3877864b9695284189d74b4b3e454b36c2a8d4383/crucible_ingestion-0.2.1-py3-none-any.whl", hash = "sha256:ae15e3e5d73fe5fb2e89fc21628bdc394f418200f5c724e7c3609079d76de690", size = 83012, upload-time = "2026-11-17T20:08:39.108Z" },
 ]
 
 [[package]]
 name = "crucible-ingestion-worker"
-version = "0.3.1"
+version = "0.3.2"
 source = { editable = "." }
 dependencies = [
     { name = "crucible-ingestion" },
@@ -498,7 +498,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "crucible-ingestion", specifier = "==0.2.0" },
+    { name = "crucible-ingestion", specifier = "==0.2.1" },
     { name = "google-cloud-secret-manager", specifier = ">=2.27.0" },
     { name = "obstore", specifier = ">=0.12.1" },
     { name = "pika", specifier = ">=1.3.2" },

@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-17
+
+crucible-ingestion 0.2.1.
+
+### Changed
+
+- crucible-ingestion 0.2.1: Nirvana child datasets no longer send `instrument_name`, which API 4.0 refuses.
+
 ## [0.3.1] - 2026-11-16
 
 Numeric image user. crucible-ingestion 0.2.0.
@@ -47,7 +55,8 @@ First release as `crucible-ingestion-worker`: generic configuration, threaded jo
 - Unreadable or crashing messages move to the failed queue.
 - Images on ghcr from version tags, with the crucible-ingestion version in the label `gov.lbl.crucible.ingestion.version`; `CRUCIBLE_INGESTION_SPEC` builds against another crucible-ingestion.
 
-[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/releases/tag/v0.2.0
