@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-18
+
+Crucible API 4.0, Kratos XPS ingestor, and Nirvana holder splitting. crucible-ingestion 0.3.2.
+
+### Breaking changes
+
+- crucible-ingestion 0.3.2 requires Crucible API 4.0 (`nano-crucible>=4.0.1`).
+
+### Added
+
+- `KratosXpsIngestor` for B30 Kratos `.kal` XPS spectra.
+- Server-side per-position child dataset and thumbnail splitting in `NirvanaMultiPosLineScanIngestor` and `NirvanaMultiPosSpecRunIngestor` for holder overrides.
+
 ## [0.3.2] - 2026-11-17
 
 crucible-ingestion 0.2.1.
@@ -55,7 +68,8 @@ First release as `crucible-ingestion-worker`: generic configuration, threaded jo
 - Unreadable or crashing messages move to the failed queue.
 - Images on ghcr from version tags, with the crucible-ingestion version in the label `gov.lbl.crucible.ingestion.version`; `CRUCIBLE_INGESTION_SPEC` builds against another crucible-ingestion.
 
-[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.2.0...v0.3.0
