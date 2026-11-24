@@ -6,3 +6,6 @@ updates:
       interval: daily
     allow:
       - dependency-name: crucible-ingestion
+    # crucible-ingestion is our own package; take a release as soon as it is on PyPI.
+    cooldown:
+      default-days: 0
