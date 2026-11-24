@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-24
+
+Attolight cathodoluminescence and SUR ingestors. crucible-ingestion 0.3.3.
+
+### Added
+
+- `AttolightCLIngestor` for Attolight cathodoluminescence `.xml` and `.txt` acquisitions.
+- `SurIngestor` for `.sur` surface files.
+
+### Changed
+
+- crucible-ingestion 0.3.3: ingested datasets no longer send a `size`; Attolight child datasets take the parent's owner.
+
 ## [0.4.0] - 2026-11-18
 
 Crucible API 4.0, Kratos XPS ingestor, and Nirvana holder splitting. crucible-ingestion 0.3.2.
@@ -68,7 +81,8 @@ First release as `crucible-ingestion-worker`: generic configuration, threaded jo
 - Unreadable or crashing messages move to the failed queue.
 - Images on ghcr from version tags, with the crucible-ingestion version in the label `gov.lbl.crucible.ingestion.version`; `CRUCIBLE_INGESTION_SPEC` builds against another crucible-ingestion.
 
-[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.0...v0.3.1
