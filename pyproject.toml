@@ -1,15 +1,20 @@
 [project]
-name = 'crucible-ingestion-worker'
-version = '0.4.2'
+name = "crucible-ingestion-worker"
+version = "0.4.2"
 
 description = "Crucible ingestion worker: runs crucible-ingestion parsers on jobs queued by a Crucible API"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "crucible-ingestion==0.3.4",
     "google-cloud-secret-manager>=2.27.0",
     "obstore>=0.12.1",
     "pika>=1.3.2",
-] 
+]
+
+[project.urls]
+Repository = "https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker"
+Changelog = "https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]

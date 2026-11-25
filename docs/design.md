@@ -1,6 +1,6 @@
 # crucible-ingestion-worker: design
 
-Status: proposed, 2026-11-13. Not yet implemented. This repository is being renamed from `ingestion-cloud-consumer` to `crucible-ingestion-worker`.
+Status: accepted, 2026-11-13. Migration steps 1 and 2 and the direct reads of step 3 are released; the rest is planned (see Migration). The [README](../README.md) documents current behavior and settings; this page records the design and why.
 
 ## Purpose
 
@@ -113,36 +113,19 @@ Following RabbitMQ's guidance and pika's documented pattern:
 
 ## Configuration
 
-Configuration comes from environment variables. Each secret is given exactly one way, as a variable or as `<NAME>_FILE` pointing to a file (which suits Docker secrets, Kubernetes Secrets, and the GKE Secret Manager add-on).
+Configuration comes from environment variables. Each secret is given exactly one way: as a variable, as `<NAME>_FILE` pointing to a file (which suits Docker secrets, Kubernetes Secrets, and the GKE Secret Manager add-on), or as `<NAME>_VERSION` with a Google Secret Manager version path.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `CRUCIBLE_API_URL` | required | Base URL of the API |
-| `CRUCIBLE_API_KEY` | required, secret | API key the worker acts as |
-| `RABBITMQ_HOST` | required | Broker host |
-| `RABBITMQ_PORT` | `5672` | Broker port |
-| `RABBITMQ_USER` | `guest` | Broker user |
-| `RABBITMQ_VHOST` | `/` | Broker virtual host |
-| `RABBITMQ_PASSWORD` | required, secret | Broker password |
-| `QUEUE` | required | Queue to consume, for example `ingestion-main-small` |
-| `STORAGE_MOUNTS` | empty | JSON map of bucket to directory; a mount wins over a direct read |
-| `STORAGE_BACKEND` | empty | `gcs` or `s3` to read objects straight from the store; empty reads mounts only |
-| `STORAGE_BUCKETS` | required with a backend | Comma-separated buckets the worker may read directly |
-| `S3_ENDPOINT_URL` | empty | S3-compatible endpoint, for example `http://seaweedfs:8333`; empty for AWS |
-| `S3_REGION` | `us-east-1` | S3 region |
-| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | empty, secrets | S3 key, given together; empty uses the platform's credentials |
-| `WORK_DIR` | `/tmp/work` | Scratch for downloaded files; must hold the largest file of the tier |
-| `LOG_LEVEL` | `INFO` | Logging level |
+The [README](../README.md#configuration) lists every variable.
 
-Nothing in the code names a Foundry bucket, secret or host. The password is a secret of its own rather than part of a URL, so the Foundry keeps using its existing `rabbitmq_default_pw` and `crucible_admin_apikey` secrets unchanged. The Google Cloud libraries leave the default image, and reading secrets from Secret Manager becomes the deployment's job (the `_FILE` convention covers it). For the Foundry that means, before the first release ships: the GKE Secret Manager add-on enabled on `crucible-cluster`, and read access to the two secrets for the identity the consumers run as (the `default` Kubernetes service account today, through Workload Identity).
+Nothing in the code names a Foundry bucket, secret or host. The password is a secret of its own rather than part of a URL, so the Foundry keeps using its existing `rabbitmq_default_pw` and `crucible_admin_apikey` secrets unchanged. Secret Manager stays available through `<NAME>_VERSION`, so the Foundry reads its secrets without the GKE add-on; other deployments use `_FILE`.
 
 ## Image and versions
 
-- The image's harness version is its tag (`X.Y.Z`); the bundled `crucible-ingestion` version is an OCI label (`org.crucible.ingestion-version`) and is logged at startup.
+- The image's harness version is its tag (`X.Y.Z`); the bundled `crucible-ingestion` version is an OCI label (`gov.lbl.crucible.ingestion.version`) and is logged at startup.
 - A default build installs the library version locked in `uv.lock`, from PyPI, so a tag is reproducible. The build argument `CRUCIBLE_INGESTION_SPEC` overrides it for custom builds (a pre-release, `git+...@main`, a fork); production runs default builds.
-- The first release locks the library at the version the Foundry runs today: commit `7a3078d` (crucible-ingestion PR #54, version `0.1.0`). Publishing it as `0.1.0` through trusted publishing needs a tag on a commit that adds only `release.yml` to `7a3078d`, since `release.yml` is not in `7a3078d` and the publisher is bound to it; the package is then identical to what the Foundry runs, and the worker switches to `crucible-ingestion==0.1.0`.
+- The library is pinned to an exact PyPI release in `pyproject.toml` and `uv.lock`.
 - Pinned `uv` version, a `.dockerignore`, and a non-root user.
-- Published to `ghcr.io/molecularfoundrycrucible/crucible-ingestion-worker` by GitHub Actions on release tags; `:latest` is the newest release.
+- Published to `ghcr.io/molecularfoundrycrucible/crucible-ingestion-worker` by GitHub Actions on release tags, as `X.Y.Z` and `X.Y`; there is no `:latest`, and deployments pin a digest.
 - Library updates are reviewed version bumps (Dependabot's `uv` support, with `uv lock --check` in CI); the automatic re-pin-and-redeploy chain is removed.
 
 ## Operations
@@ -160,6 +143,10 @@ The README leads with a quick start in the style of crucible-api's `deploy/compo
 - Standalone: one `docker run` against an existing API and RabbitMQ.
 - Kubernetes: an example manifest for one tier, with the mounted-mode volume shown for GKE and for Mountpoint for Amazon S3.
 
+## Worker registration
+
+The worker registers the ingestors it bundles with the API (`PUT /workers/{hostname}`, crucible-api #549), so `GET /ingestors` lists what live workers can run instead of a hardcoded list. Registration is advisory: ingestion never waits on it, and a job for an ingestor only another live worker offers goes back to the queue a bounded number of times before running locally. The README covers the details.
+
 ## Multiple workers
 
 The post-processing workers (rga-analysis, mosaic-stitch, insitu-aggregation, carrier-segmentation) follow the same pattern against the API's pipelines contract. The worker keeps that boundary visible in its layout: a generic core (configuration, connection, consume loop, acknowledgements, status reporting, file access, health, shutdown) and an ingestion handler. When the second worker is rewritten, the core moves to a small shared package, building on the helpers already in `crucible-rabbit-mq/crucible_utils`.
@@ -174,9 +161,9 @@ The post-processing workers (rga-analysis, mosaic-stitch, insitu-aggregation, ca
 
 Each step keeps production working; production is on API 3.3.1 and mounted access until its 4.0 cut-over.
 
-1. Rename the repository and package; remove the auto-bump; Dockerfile hygiene; lock at `7a3078d`.
-2. Generic configuration with the Foundry's current values supplied by its deployment, reading through the existing mounts; same queues and message format. Heartbeat-safe threading and `prefetch_count=1`. First release to ghcr; the Foundry deploys it from `mf-crucible-deploy`.
-3. Direct reads from GCS and S3 in the worker (done, unreleased). The ingestor input interface in crucible-ingestion; signed-link references in the worker (with `file_mfid` from the API, or looked up from the request); the compose overlay and the quick start. Then the benchmark that decides whether the Foundry keeps its mounts.
+1. Done: rename the repository and package; remove the auto-bump; Dockerfile hygiene; pin a released library.
+2. Done: generic configuration with the Foundry's current values supplied by its deployment, reading through the existing mounts; same queues and message format. Heartbeat-safe threading and `prefetch_count=1`. First release to ghcr; the Foundry deploys it from `mf-crucible-deploy`.
+3. Direct reads from GCS and S3 in the worker (released in 0.3.0). The ingestor input interface in crucible-ingestion; signed-link references in the worker (with `file_mfid` from the API, or looked up from the request); the compose overlay and the quick start. Then the benchmark that decides whether the Foundry keeps its mounts.
 4. Quorum queues with dead-lettering, coordinated with the API.
 5. Extract the shared core when the post-processing workers move over.
 
