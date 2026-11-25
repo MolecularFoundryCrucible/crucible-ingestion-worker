@@ -11,6 +11,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - The worker registers its ingestors, the buckets it reads and its versions with the API (`PUT /workers/{hostname}`), renews the registration every `heartbeat_seconds` the API returns, and deregisters on shutdown. Needs crucible-api with worker registration; older APIs are retried quietly. The API key must belong to a service account.
 - A job for an ingestor this worker lacks, but another live worker offers, is returned to the queue after 30 s instead of failing.
 
+### Changed
+
+- crucible-ingestion 0.3.5, which lists each ingestor's capabilities for the registration.
+
 ## [0.4.2] - 2026-11-24
 
 RGA/TEY batch zip ingestion on opaque storage paths. crucible-ingestion 0.3.4.
