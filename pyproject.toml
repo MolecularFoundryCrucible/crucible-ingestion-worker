@@ -1,6 +1,6 @@
 [project]
 name = "crucible-ingestion-worker"
-version = "0.4.2"
+version = "0.5.0"
 
 description = "Crucible ingestion worker: runs crucible-ingestion parsers on jobs queued by a Crucible API"
 readme = "README.md"

@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-24
+
+Registration of the worker's ingestors with the API. crucible-ingestion 0.3.5.
+
 ### Added
 
 - The worker registers its ingestors, the buckets it reads and its versions with the API (`PUT /workers/{hostname}`), renews the registration every `heartbeat_seconds` the API returns, and deregisters on shutdown. Needs crucible-api with worker registration; older APIs are retried quietly. The API key must belong to a service account.
@@ -98,7 +102,8 @@ First release as `crucible-ingestion-worker`: generic configuration, threaded jo
 - Unreadable or crashing messages move to the failed queue.
 - Images on ghcr from version tags, with the crucible-ingestion version in the label `gov.lbl.crucible.ingestion.version`; `CRUCIBLE_INGESTION_SPEC` builds against another crucible-ingestion.
 
-[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.2...v0.4.0
