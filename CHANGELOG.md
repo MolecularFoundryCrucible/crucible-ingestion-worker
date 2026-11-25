@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-24
+
+RGA/TEY batch zip ingestion on opaque storage paths. crucible-ingestion 0.3.4.
+
+### Fixed
+
+- crucible-ingestion 0.3.4: `RgaTeyBatchIngestor` extracts nested batch folders using `file_name` when `file_to_upload` is an opaque storage path.
+
 ## [0.4.1] - 2026-11-24
 
 Attolight cathodoluminescence and SUR ingestors. crucible-ingestion 0.3.3.
@@ -81,7 +89,8 @@ First release as `crucible-ingestion-worker`: generic configuration, threaded jo
 - Unreadable or crashing messages move to the failed queue.
 - Images on ghcr from version tags, with the crucible-ingestion version in the label `gov.lbl.crucible.ingestion.version`; `CRUCIBLE_INGESTION_SPEC` builds against another crucible-ingestion.
 
-[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/MolecularFoundryCrucible/crucible-ingestion-worker/compare/v0.3.1...v0.3.2
