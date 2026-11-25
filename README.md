@@ -68,7 +68,7 @@ The worker tells the API which ingestors it runs, so the API's `GET /ingestors` 
 
 `CRUCIBLE_API_KEY` must belong to a service account for the API to accept the registration. Ingestion never depends on it: an API without the endpoint (404 or 405) is retried quietly, any other refusal is logged once as a warning, and metadata the API ignored is logged once.
 
-A job naming an ingestor this worker lacks, while another live worker offers it (during a rollout, for example), goes back to the queue after 30 s. When no live worker offers it, the worker runs the job as before.
+A job naming an ingestor this worker lacks, while another live worker offers it (during a rollout, for example), goes back to the queue after 10 s, up to 30 times per worker. When no live worker offers it, or no other worker takes it by then, the worker runs the job as before.
 
 ## Running
 

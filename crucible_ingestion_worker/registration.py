@@ -9,7 +9,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 DEFAULT_HEARTBEAT = 150
-REQUEST_TIMEOUT = 15
+REQUEST_TIMEOUT = 5
 
 
 def registration_body(config) -> dict:
@@ -46,6 +46,8 @@ class Registration:
                 self._log_refusal(status, response.text[:200])
                 return DEFAULT_HEARTBEAT
             data = response.json()
+            heartbeat = data.get("heartbeat_seconds") or DEFAULT_HEARTBEAT
+            ignored = data.get("ignored") or []
         except Exception as err:
             self._log_refusal(type(err).__name__, str(err)[:200])
             return DEFAULT_HEARTBEAT
@@ -54,10 +56,10 @@ class Registration:
                         f"({len(self.body['capabilities'])} ingestors)")
         self.last_status = status
         if not self.reported_ignored:
-            for item in data.get("ignored") or []:
+            for item in ignored:
                 logger.warning(f"The API ignored {item.get('field')} of ingestor {item.get('name')}: {item.get('reason')}")
             self.reported_ignored = True
-        return data.get("heartbeat_seconds") or DEFAULT_HEARTBEAT
+        return heartbeat
 
     def _log_refusal(self, status, detail: str) -> None:
         if status == self.last_status:
@@ -78,8 +80,9 @@ class Registration:
     def stop(self) -> None:
         self.stopped.set()
         if self.thread is not None:
-            self.thread.join(timeout=5)
+            # Waiting out a PUT in flight keeps it from landing after the DELETE and registering a stopped worker.
+            self.thread.join(timeout=REQUEST_TIMEOUT + 1)
         try:
-            self.session.delete(self.url, timeout=5)
+            self.session.delete(self.url, timeout=REQUEST_TIMEOUT)
         except Exception as err:
             logger.debug(f"Could not deregister: {err}")

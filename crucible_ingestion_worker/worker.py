@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 MAX_FILE_RETRIES = 5
 MAX_INGEST_RETRIES = 5
-REQUEUE_DELAY = 30
+REQUEUE_DELAY = 10
+MAX_REQUEUES = 30
 
 
 def ingestion_version() -> str:
@@ -49,6 +50,7 @@ class JobHandler:
         self.storage = storage or ObjectStorage(config)
         self.version = ingestion_version()
         self.live_ingestors = live_ingestors or self._fetch_live_ingestors
+        self.requeues: dict = {}
 
     def _fail(self, ch, message: dict, status: str, **fields) -> None:
         self.client.ingestions.update(message["reqid"], status, **fields)
@@ -69,11 +71,17 @@ class JobHandler:
             return
         requested = message.get("ingestion_class")
         if requested and requested not in SELECTABLE and self._offered_elsewhere(requested):
-            logger.warning(f"Request {reqid} asks for {requested}, which this worker lacks but another live worker "
-                           f"offers; returning it to the queue in {REQUEUE_DELAY}s")
-            self.sleep(REQUEUE_DELAY)
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-            return
+            count = self.requeues.get(reqid, 0)
+            if count < MAX_REQUEUES:
+                if count == 0:
+                    logger.warning(f"Request {reqid} asks for {requested}, which this worker lacks but another live "
+                                   f"worker offers; returning it to the queue")
+                self.requeues[reqid] = count + 1
+                self.sleep(REQUEUE_DELAY)
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                return
+            del self.requeues[reqid]
+            logger.warning(f"Request {reqid} for {requested} was not taken by another worker; running it here")
         local_path, bucket = resolve_path(message["filename"], self.config.storage_mounts)
         remote = self.storage.locate(message["filename"]) if local_path is None else None
         if local_path is None and remote is None:
@@ -276,10 +284,15 @@ def main(env=os.environ) -> None:
     consumer = Consumer(connection, channel, handler, config)
     signal.signal(signal.SIGTERM, consumer.request_stop)
     signal.signal(signal.SIGINT, consumer.request_stop)
-    registration = Registration(config, registration_body(config))
-    registration.start()
+    try:
+        registration = Registration(config, registration_body(config))
+        registration.start()
+    except Exception as err:
+        registration = None
+        logger.warning(f"Not registering with the API: {err}")
     logger.info(f"[*] Waiting for messages on {config.queue} (crucible-ingestion {handler.version})")
     try:
         consumer.run()
     finally:
-        registration.stop()
+        if registration is not None:
+            registration.stop()

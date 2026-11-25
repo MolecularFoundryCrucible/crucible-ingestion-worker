@@ -342,6 +342,19 @@ def test_an_ingestor_only_another_live_worker_has_is_requeued_after_a_delay(tmp_
     assert client.ingestions.calls == []
 
 
+def test_a_job_no_other_worker_takes_runs_here_after_the_requeue_limit(tmp_path, monkeypatch):
+    (tmp_path / "MF1" / "_files").mkdir(parents=True)
+    (tmp_path / "MF1" / "_files" / "abc").write_text("data")
+    handler, client, _ = make_handler(tmp_path, monkeypatch)
+    handler.live_ingestors = lambda: ["NewerIngestor"]
+    monkeypatch.setattr(worker, "data_ingestion", lambda **k: (None, None, False))
+    ch = FakeChannel()
+    for _ in range(worker.MAX_REQUEUES + 1):
+        handler(ch, Method(), None, body(ingestion_class="NewerIngestor")[1])
+    assert len(ch.nacked) == worker.MAX_REQUEUES
+    assert statuses(client) == ["started", "not supported"]
+
+
 def _no_registration_endpoint():
     raise requests.exceptions.HTTPError("404")
 
