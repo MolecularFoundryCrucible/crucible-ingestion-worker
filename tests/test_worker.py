@@ -9,13 +9,16 @@ from crucible_ingestion_worker.config import load_config
 
 class FakeChannel:
     def __init__(self):
-        self.published, self.acked, self.declared = [], [], []
+        self.published, self.acked, self.declared, self.nacked = [], [], [], []
 
     def basic_publish(self, exchange, routing_key, body):
         self.published.append((routing_key, json.loads(body)))
 
     def basic_ack(self, delivery_tag):
         self.acked.append(delivery_tag)
+
+    def basic_nack(self, delivery_tag, requeue):
+        self.nacked.append((delivery_tag, requeue))
 
     def queue_declare(self, queue):
         self.declared.append(queue)
@@ -326,3 +329,31 @@ def test_status_lookup_failure_does_not_block_the_job(tmp_path, monkeypatch):
     monkeypatch.setattr(worker, "data_ingestion", lambda **k: ({"unique_id": "MF1"}, "I", True))
     handler(FakeChannel(), Method(), None, body()[1])
     assert statuses(client) == ["started", "complete"]
+
+
+def test_an_ingestor_only_another_live_worker_has_is_requeued_after_a_delay(tmp_path, monkeypatch):
+    handler, client, sleeps = make_handler(tmp_path, monkeypatch)
+    handler.live_ingestors = lambda: ["NewerIngestor"]
+    monkeypatch.setattr(worker, "data_ingestion", lambda **k: pytest.fail("must not run here"))
+    ch = FakeChannel()
+    handler(ch, Method(), None, body(ingestion_class="NewerIngestor")[1])
+    assert ch.nacked == [(7, True)] and ch.acked == []
+    assert sleeps == [worker.REQUEUE_DELAY]
+    assert client.ingestions.calls == []
+
+
+def _no_registration_endpoint():
+    raise requests.exceptions.HTTPError("404")
+
+
+@pytest.mark.parametrize("live", [lambda: [], _no_registration_endpoint])
+def test_an_ingestor_no_live_worker_offers_runs_here_as_before(tmp_path, monkeypatch, live):
+    (tmp_path / "MF1" / "_files").mkdir(parents=True)
+    (tmp_path / "MF1" / "_files" / "abc").write_text("data")
+    handler, client, _ = make_handler(tmp_path, monkeypatch)
+    handler.live_ingestors = live
+    monkeypatch.setattr(worker, "data_ingestion", lambda **k: (None, None, False))
+    ch = FakeChannel()
+    handler(ch, Method(), None, body(ingestion_class="UnknownIngestor")[1])
+    assert ch.nacked == []
+    assert statuses(client) == ["started", "not supported"]
