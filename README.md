@@ -61,6 +61,14 @@ Configuration comes only from environment variables. Each secret is given exactl
 | `HEALTH_INTERVAL` | `15` | Seconds between touches |
 | `LOG_LEVEL` | `INFO` | Log level |
 
+## Registration with the API
+
+The worker tells the API which ingestors it runs, so the API's `GET /ingestors` lists only what live workers can do. At startup it sends `PUT /workers/{hostname}` with `crucible-ingestion`'s selectable ingestors (`capabilities()`), the buckets it reads (`STORAGE_BUCKETS` and `STORAGE_MOUNTS`) and both versions, renews it every `heartbeat_seconds` the API returns (150 s by default), and sends `DELETE` on a clean shutdown. The API forgets a worker 10 minutes after its last renewal. The hostname is the worker id: the pod name on Kubernetes; set a distinct `hostname:` per container elsewhere if they could collide.
+
+`CRUCIBLE_API_KEY` must belong to a service account for the API to accept the registration. Ingestion never depends on it: an API without the endpoint (404 or 405) is retried quietly, any other refusal is logged once as a warning, and metadata the API ignored is logged once.
+
+A job naming an ingestor this worker lacks, while another live worker offers it (during a rollout, for example), goes back to the queue after 10 s, up to 30 times per worker. When no live worker offers it, or no other worker takes it by then, the worker runs the job as before.
+
 ## Running
 
 One worker against an existing API and RabbitMQ, reading an S3-compatible store with keys from files:

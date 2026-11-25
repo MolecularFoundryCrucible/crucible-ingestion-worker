@@ -9,20 +9,24 @@ import time
 from contextlib import contextmanager
 from importlib.metadata import version
 from pathlib import Path
-from typing import Callable, Iterator, Optional, Tuple
+from typing import Callable, Iterable, Iterator, Optional, Tuple
 
 import requests
 
 from crucible_ingestion import data_ingestion
+from crucible_ingestion.ingestors.registry import SELECTABLE
 from crucible_ingestion.utils import get_ingestion_githash
 
 from .config import Config
+from .registration import Registration, registration_body
 from .storage import ObjectStorage, file_exists, local_name, resolve_path
 
 logger = logging.getLogger(__name__)
 
 MAX_FILE_RETRIES = 5
 MAX_INGEST_RETRIES = 5
+REQUEUE_DELAY = 10
+MAX_REQUEUES = 30
 
 
 def ingestion_version() -> str:
@@ -38,12 +42,15 @@ class JobHandler:
     """
 
     def __init__(self, config: Config, client, sleep: Callable[[float], None] = time.sleep,
-                 storage: Optional[ObjectStorage] = None):
+                 storage: Optional[ObjectStorage] = None,
+                 live_ingestors: Optional[Callable[[], Iterable[str]]] = None):
         self.config = config
         self.client = client
         self.sleep = sleep
         self.storage = storage or ObjectStorage(config)
         self.version = ingestion_version()
+        self.live_ingestors = live_ingestors or self._fetch_live_ingestors
+        self.requeues: dict = {}
 
     def _fail(self, ch, message: dict, status: str, **fields) -> None:
         self.client.ingestions.update(message["reqid"], status, **fields)
@@ -62,6 +69,19 @@ class JobHandler:
             logger.info(f"Request {reqid} is already complete; acknowledging the redelivered job without running it")
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
+        requested = message.get("ingestion_class")
+        if requested and requested not in SELECTABLE and self._offered_elsewhere(requested):
+            count = self.requeues.get(reqid, 0)
+            if count < MAX_REQUEUES:
+                if count == 0:
+                    logger.warning(f"Request {reqid} asks for {requested}, which this worker lacks but another live "
+                                   f"worker offers; returning it to the queue")
+                self.requeues[reqid] = count + 1
+                self.sleep(REQUEUE_DELAY)
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                return
+            del self.requeues[reqid]
+            logger.warning(f"Request {reqid} for {requested} was not taken by another worker; running it here")
         local_path, bucket = resolve_path(message["filename"], self.config.storage_mounts)
         remote = self.storage.locate(message["filename"]) if local_path is None else None
         if local_path is None and remote is None:
@@ -125,6 +145,20 @@ class JobHandler:
             self._fail(ch, message, "failed", ingestion_githash=self.version, ingestion_class=ingestion_class)
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
+    def _offered_elsewhere(self, ingestor: str) -> bool:
+        """Whether a live worker registered the ingestor; without an answer, run the job here as before."""
+        try:
+            return ingestor in set(self.live_ingestors())
+        except Exception as err:
+            logger.debug(f"Could not read the live ingestors: {err}")
+            return False
+
+    def _fetch_live_ingestors(self) -> list:
+        response = requests.get(f"{self.config.api_url.rstrip('/')}/ingestors", timeout=10,
+                                headers={"Authorization": f"Bearer {self.config.api_key}"})
+        response.raise_for_status()
+        return response.json()
+
     def _already_complete(self, reqid) -> bool:
         """Only a completed run has side effects worth guarding against (thumbnails are added again);
         other statuses may be retried on purpose."""
@@ -160,6 +194,10 @@ class ThreadSafeChannel:
 
     def basic_ack(self, delivery_tag) -> None:
         self._connection.add_callback_threadsafe(functools.partial(self._channel.basic_ack, delivery_tag=delivery_tag))
+
+    def basic_nack(self, delivery_tag, requeue) -> None:
+        self._connection.add_callback_threadsafe(
+            functools.partial(self._channel.basic_nack, delivery_tag=delivery_tag, requeue=requeue))
 
 
 class Consumer:
@@ -246,5 +284,15 @@ def main(env=os.environ) -> None:
     consumer = Consumer(connection, channel, handler, config)
     signal.signal(signal.SIGTERM, consumer.request_stop)
     signal.signal(signal.SIGINT, consumer.request_stop)
+    try:
+        registration = Registration(config, registration_body(config))
+        registration.start()
+    except Exception as err:
+        registration = None
+        logger.warning(f"Not registering with the API: {err}")
     logger.info(f"[*] Waiting for messages on {config.queue} (crucible-ingestion {handler.version})")
-    consumer.run()
+    try:
+        consumer.run()
+    finally:
+        if registration is not None:
+            registration.stop()
