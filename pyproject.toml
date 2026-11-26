@@ -6,7 +6,7 @@ description = "Crucible ingestion worker: runs crucible-ingestion parsers on job
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "crucible-ingestion==0.3.5",
+    "crucible-ingestion==0.3.6",
     "google-cloud-secret-manager>=2.27.0",
     "obstore>=0.12.1",
     "pika>=1.3.2",
